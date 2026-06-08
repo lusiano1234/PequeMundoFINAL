@@ -1,0 +1,142 @@
+{% extends "vendedor_base.html" %}
+{% block titulo %}Dashboard Vendedor{% endblock %}
+{% block topbar_titulo %}Dashboard{% endblock %}
+
+{% block contenido %}
+
+<!-- STATS -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="v-stat">
+      <span class="v-stat-icon">💰</span>
+      <div class="v-stat-label">Ventas aprobadas</div>
+      <div class="v-stat-value text-success">${{ "{:,.0f}".format(total_ventas) }}</div>
+      <div class="v-stat-sub">Total acumulado</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="v-stat">
+      <span class="v-stat-icon">📦</span>
+      <div class="v-stat-label">Mis pedidos</div>
+      <div class="v-stat-value" style="color:#4f7df3;">{{ mis_pedidos|length }}</div>
+      <div class="v-stat-sub">Total registrados</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="v-stat">
+      <span class="v-stat-icon">⏳</span>
+      <div class="v-stat-label">Pendientes de pago</div>
+      <div class="v-stat-value" style="color:#f59e0b;">{{ pedidos_pendientes }}</div>
+      <div class="v-stat-sub">Sin confirmar</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="v-stat">
+      <span class="v-stat-icon">✅</span>
+      <div class="v-stat-label">Pagos aprobados</div>
+      <div class="v-stat-value" style="color:#10b981;">{{ pedidos_pagados }}</div>
+      <div class="v-stat-sub">Confirmados por MP</div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCIONES RÁPIDAS -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-card-title">Acciones rápidas</span>
+      </div>
+      <div style="padding:1.2rem;display:flex;gap:0.8rem;flex-wrap:wrap;">
+        <a href="{{ url_for('vendedor_crear_pedido') }}" class="v-btn v-btn-primary">
+          ➕ Nuevo pedido con pago MP
+        </a>
+        <a href="{{ url_for('vendedor_catalogo') }}" class="v-btn v-btn-outline">
+          🛍️ Ver catálogo
+        </a>
+        <a href="{{ url_for('vendedor_estadisticas') }}" class="v-btn v-btn-outline">
+          📈 Ver estadísticas
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- ÚLTIMOS PEDIDOS -->
+  <div class="col-lg-7">
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-card-title">Mis últimos pedidos</span>
+        <a href="{{ url_for('vendedor_pedidos') }}" class="v-btn v-btn-outline v-btn-sm">Ver todos</a>
+      </div>
+      <table class="v-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Total</th>
+            <th>Estado MP</th>
+            <th>Pedido</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in mis_pedidos[-5:]|reverse %}
+          <tr>
+            <td style="font-family:monospace;font-size:0.78rem;color:#6b7280;">#{{ p.id }}</td>
+            <td style="font-weight:600;">{{ p.cliente }}</td>
+            <td style="font-weight:700;">${{ "{:,.0f}".format(p.total) }}</td>
+            <td>
+              {% if p.mp_status == 'approved' %}
+                <span class="v-badge v-badge-success">✅ Aprobado</span>
+              {% elif p.mp_status == 'rejected' %}
+                <span class="v-badge v-badge-danger">❌ Rechazado</span>
+              {% elif p.mp_status == 'pending' %}
+                <span class="v-badge v-badge-warning">⏳ Pendiente</span>
+              {% else %}
+                <span class="v-badge v-badge-gray">— Sin pago</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.estado == 'Pagado' %}
+                <span class="v-badge v-badge-success">Pagado</span>
+              {% elif p.estado == 'Pendiente' %}
+                <span class="v-badge v-badge-warning">Pendiente</span>
+              {% else %}
+                <span class="v-badge v-badge-gray">{{ p.estado }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:2rem;">No tienes pedidos aún. <a href="{{ url_for('vendedor_crear_pedido') }}">Crear uno</a></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CATÁLOGO RÁPIDO -->
+  <div class="col-lg-5">
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-card-title">Productos disponibles</span>
+        <a href="{{ url_for('vendedor_catalogo') }}" class="v-btn v-btn-outline v-btn-sm">Ver todos</a>
+      </div>
+      <div style="padding:0.5rem 0;">
+        {% for p in productos[:6] %}
+        <div style="display:flex;align-items:center;gap:0.8rem;padding:0.7rem 1.2rem;border-bottom:1px solid #f3f4f6;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.nombre }}</div>
+            <div style="font-size:0.72rem;color:#6b7280;">{{ p.categoria }} · Stock: {{ p.stock }}</div>
+          </div>
+          <div style="font-weight:700;color:#4f7df3;font-size:0.85rem;white-space:nowrap;">${{ "{:,.0f}".format(p.precio) }}</div>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:2rem;color:#9ca3af;">Sin productos activos</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

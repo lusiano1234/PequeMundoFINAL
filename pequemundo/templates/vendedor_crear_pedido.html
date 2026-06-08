@@ -1,0 +1,229 @@
+{% extends "vendedor_base.html" %}
+{% block titulo %}Nuevo Pedido{% endblock %}
+{% block topbar_titulo %}Crear Pedido con Mercado Pago{% endblock %}
+
+{% block contenido %}
+
+<div class="row g-4">
+  <!-- FORMULARIO -->
+  <div class="col-lg-7">
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-card-title">📋 Datos del pedido</span>
+      </div>
+      <div style="padding:1.5rem;">
+        <form method="POST" id="pedidoForm">
+          <!-- Datos cliente -->
+          <div style="margin-bottom:1.2rem;">
+            <label style="font-size:0.78rem;font-weight:600;color:#374151;display:block;margin-bottom:0.4rem;">Nombre del cliente *</label>
+            <input type="text" name="cliente" required placeholder="Ej: Juan Pérez"
+              style="width:100%;padding:0.6rem 0.9rem;border:1px solid #e5e7eb;border-radius:8px;font-size:0.88rem;outline:none;font-family:inherit;">
+          </div>
+          <div style="margin-bottom:1.5rem;">
+            <label style="font-size:0.78rem;font-weight:600;color:#374151;display:block;margin-bottom:0.4rem;">Email del cliente *</label>
+            <input type="email" name="cliente_email" required placeholder="cliente@email.com"
+              style="width:100%;padding:0.6rem 0.9rem;border:1px solid #e5e7eb;border-radius:8px;font-size:0.88rem;outline:none;font-family:inherit;">
+            <span style="font-size:0.72rem;color:#9ca3af;">Se usa para la notificación de pago de Mercado Pago</span>
+          </div>
+
+          <!-- Selector de productos -->
+          <div style="margin-bottom:0.8rem;">
+            <label style="font-size:0.78rem;font-weight:600;color:#374151;display:block;margin-bottom:0.8rem;">Agregar productos</label>
+            <div style="display:flex;gap:0.6rem;margin-bottom:0.6rem;">
+              <select id="productoSelect"
+                style="flex:1;padding:0.6rem 0.9rem;border:1px solid #e5e7eb;border-radius:8px;font-size:0.85rem;font-family:inherit;outline:none;">
+                <option value="">— Seleccionar producto —</option>
+                {% for p in productos %}
+                <option value="{{ p.id }}"
+                  data-nombre="{{ p.nombre }}"
+                  data-precio="{{ p.precio|int }}"
+                  data-stock="{{ p.stock }}">
+                  {{ p.nombre }} — ${{ "{:,.0f}".format(p.precio) }} (Stock: {{ p.stock }})
+                </option>
+                {% endfor %}
+              </select>
+              <input type="number" id="cantidadInput" value="1" min="1"
+                style="width:80px;padding:0.6rem;border:1px solid #e5e7eb;border-radius:8px;font-size:0.85rem;text-align:center;font-family:inherit;">
+              <button type="button" onclick="agregarProducto()" class="v-btn v-btn-primary">
+                + Agregar
+              </button>
+            </div>
+          </div>
+
+          <!-- Items agregados -->
+          <div id="itemsContainer" style="margin-bottom:1.2rem;">
+            <div id="itemsEmpty" style="text-align:center;padding:2rem;border:2px dashed #e5e7eb;border-radius:10px;color:#9ca3af;font-size:0.85rem;">
+              Ningún producto agregado aún
+            </div>
+            <div id="itemsList" style="display:none;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;"></div>
+          </div>
+
+          <!-- Total -->
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:1rem 1.2rem;margin-bottom:1.5rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:0.85rem;font-weight:600;color:#374151;">Total del pedido</span>
+              <span id="totalDisplay" style="font-size:1.5rem;font-weight:800;color:#4f7df3;">$0</span>
+            </div>
+          </div>
+
+          <!-- Campo oculto con items JSON -->
+          <input type="hidden" name="items" id="itemsInput" value="[]">
+
+          <!-- Submit -->
+          <button type="submit" id="submitBtn" disabled
+            style="width:100%;padding:0.85rem;border-radius:10px;border:none;background:#4f7df3;color:#fff;font-weight:700;font-size:0.95rem;cursor:not-allowed;opacity:0.5;transition:all 0.15s;font-family:inherit;">
+            🔒 Crear pedido y pagar con Mercado Pago
+          </button>
+          <p style="font-size:0.72rem;color:#9ca3af;text-align:center;margin-top:0.6rem;">
+            Serás redirigido al Checkout de Mercado Pago (Sandbox)
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL LATERAL -->
+  <div class="col-lg-5">
+    <!-- Info MP Sandbox -->
+    <div class="v-card" style="margin-bottom:1rem;">
+      <div class="v-card-header" style="background:#fff8ed;">
+        <span class="v-card-title" style="color:#92400e;">🧪 Modo Sandbox (Pruebas)</span>
+      </div>
+      <div style="padding:1.2rem;font-size:0.82rem;color:#374151;line-height:1.6;">
+        <p style="margin-bottom:0.8rem;">Para probar pagos en sandbox usa estas tarjetas de prueba de Mercado Pago:</p>
+        <div style="background:#f9fafb;border-radius:8px;padding:0.8rem;margin-bottom:0.6rem;font-family:monospace;font-size:0.78rem;">
+          <strong>✅ Visa (aprobado)</strong><br>
+          Número: 4509 9535 6623 3704<br>
+          CVV: 123 · Venc: 11/25<br>
+          Nombre: APRO
+        </div>
+        <div style="background:#f9fafb;border-radius:8px;padding:0.8rem;font-family:monospace;font-size:0.78rem;">
+          <strong>❌ Visa (rechazado)</strong><br>
+          Número: 4000 0000 0000 0002<br>
+          CVV: 123 · Venc: 11/25<br>
+          Nombre: OTHE
+        </div>
+        <p style="margin-top:0.8rem;font-size:0.72rem;color:#9ca3af;">
+          Más tarjetas: <a href="https://www.mercadopago.cl/developers/es/docs/your-integrations/test/cards" target="_blank" style="color:#4f7df3;">documentación MP</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Flujo -->
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-card-title">🔄 Flujo de pago</span>
+      </div>
+      <div style="padding:1.2rem;">
+        {% set steps = [
+          ('1', 'Crear pedido', 'Completa los datos del cliente y productos'),
+          ('2', 'Checkout MP', 'Se abre el pago seguro de Mercado Pago'),
+          ('3', 'Pago', 'El cliente paga con tarjeta u otro método'),
+          ('4', 'Webhook', 'MP notifica automáticamente el estado'),
+          ('5', 'Actualización', 'El pedido se actualiza en tu panel')
+        ] %}
+        {% for num, title, desc in steps %}
+        <div style="display:flex;gap:0.8rem;margin-bottom:{% if not loop.last %}1rem{% else %}0{% endif %};">
+          <div style="width:24px;height:24px;border-radius:50%;background:#eef4ff;color:#4f7df3;font-size:0.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ num }}</div>
+          <div>
+            <div style="font-size:0.82rem;font-weight:600;">{{ title }}</div>
+            <div style="font-size:0.75rem;color:#6b7280;">{{ desc }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let items = [];
+
+  function agregarProducto() {
+    const sel = document.getElementById('productoSelect');
+    const cant = parseInt(document.getElementById('cantidadInput').value) || 1;
+    const opt = sel.selectedOptions[0];
+
+    if (!opt || !opt.value) {
+      alert('Selecciona un producto.');
+      return;
+    }
+
+    const id = parseInt(opt.value);
+    const nombre = opt.dataset.nombre;
+    const precio = parseInt(opt.dataset.precio);
+    const stock = parseInt(opt.dataset.stock);
+
+    // Verificar si ya está en la lista
+    const existing = items.find(i => i.id === id);
+    const cantidadTotal = (existing ? existing.cantidad : 0) + cant;
+
+    if (cantidadTotal > stock) {
+      alert(`Stock insuficiente. Solo hay ${stock} unidades de ${nombre}.`);
+      return;
+    }
+
+    if (existing) {
+      existing.cantidad += cant;
+    } else {
+      items.push({ id, nombre, precio, cantidad: cant });
+    }
+
+    renderItems();
+  }
+
+  function quitarItem(id) {
+    items = items.filter(i => i.id !== id);
+    renderItems();
+  }
+
+  function renderItems() {
+    const empty = document.getElementById('itemsEmpty');
+    const list = document.getElementById('itemsList');
+    const totalEl = document.getElementById('totalDisplay');
+    const btn = document.getElementById('submitBtn');
+    const input = document.getElementById('itemsInput');
+
+    if (items.length === 0) {
+      empty.style.display = 'block';
+      list.style.display = 'none';
+      list.innerHTML = '';
+      totalEl.textContent = '$0';
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+      input.value = '[]';
+      return;
+    }
+
+    empty.style.display = 'none';
+    list.style.display = 'block';
+
+    let total = 0;
+    list.innerHTML = items.map((item, idx) => {
+      const subtotal = item.precio * item.cantidad;
+      total += subtotal;
+      return `
+        <div style="display:flex;align-items:center;gap:0.8rem;padding:0.75rem 1rem;${idx < items.length - 1 ? 'border-bottom:1px solid #f3f4f6;' : ''}">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;font-weight:600;">${item.nombre}</div>
+            <div style="font-size:0.75rem;color:#6b7280;">$${item.precio.toLocaleString('es-CL')} × ${item.cantidad}</div>
+          </div>
+          <div style="font-weight:700;color:#111827;font-size:0.9rem;">$${subtotal.toLocaleString('es-CL')}</div>
+          <button type="button" onclick="quitarItem(${item.id})"
+            style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1rem;padding:0.2rem 0.4rem;border-radius:4px;">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    totalEl.textContent = '$' + total.toLocaleString('es-CL');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    input.value = JSON.stringify(items);
+  }
+</script>
+{% endblock %}

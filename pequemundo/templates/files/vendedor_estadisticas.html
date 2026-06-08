@@ -1,0 +1,134 @@
+{% extends "vendedor_base.html" %}
+{% block titulo %}Estadísticas{% endblock %}
+{% block topbar_titulo %}Mis Estadísticas de Ventas{% endblock %}
+
+{% block contenido %}
+
+<!-- RESUMEN -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="v-stat">
+      <span class="v-stat-icon">💰</span>
+      <div class="v-stat-label">Total vendido</div>
+      <div class="v-stat-value text-success">${{ "{:,.0f}".format(total_ventas) }}</div>
+      <div class="v-stat-sub">Solo pagos aprobados</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="v-stat">
+      <span class="v-stat-icon">✅</span>
+      <div class="v-stat-label">Aprobados</div>
+      <div class="v-stat-value" style="color:#10b981;">{{ aprobados|length }}</div>
+      <div class="v-stat-sub">Pagados exitosamente</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="v-stat">
+      <span class="v-stat-icon">⏳</span>
+      <div class="v-stat-label">Pendientes</div>
+      <div class="v-stat-value" style="color:#f59e0b;">{{ pendientes|length }}</div>
+      <div class="v-stat-sub">Sin confirmar pago</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="v-stat">
+      <span class="v-stat-icon">❌</span>
+      <div class="v-stat-label">Rechazados</div>
+      <div class="v-stat-value" style="color:#ef4444;">{{ rechazados|length }}</div>
+      <div class="v-stat-sub">Pago no completado</div>
+    </div>
+  </div>
+</div>
+
+<!-- GRÁFICO DE BARRAS VISUAL (CSS puro) -->
+<div class="v-card mb-4">
+  <div class="v-card-header">
+    <span class="v-card-title">📊 Distribución de pedidos</span>
+  </div>
+  <div style="padding:2rem;">
+    {% set total_count = pedidos|length %}
+
+    {% macro barra(label, count, color, emoji) %}
+    <div style="margin-bottom:1.2rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+        <span style="font-size:0.82rem;font-weight:600;">{{ emoji }} {{ label }}</span>
+        <span style="font-size:0.8rem;font-weight:700;color:{{ color }};">{{ count }} pedido{{ 's' if count != 1 else '' }}</span>
+      </div>
+      <div style="background:#f3f4f6;border-radius:99px;height:10px;overflow:hidden;">
+        <div style="height:100%;border-radius:99px;background:{{ color }};width:{% if total_count > 0 %}{{ (count / total_count * 100)|int }}%{% else %}0%{% endif %};transition:width 0.8s ease;"></div>
+      </div>
+    </div>
+    {% endmacro %}
+
+    {{ barra('Aprobados', aprobados|length, '#10b981', '✅') }}
+    {{ barra('Pendientes', pendientes|length, '#f59e0b', '⏳') }}
+    {{ barra('Rechazados', rechazados|length, '#ef4444', '❌') }}
+
+    {% set otros = total_count - aprobados|length - pendientes|length - rechazados|length %}
+    {% if otros > 0 %}
+    {{ barra('Otros', otros, '#6b7280', '📋') }}
+    {% endif %}
+
+    {% if total_count == 0 %}
+    <div style="text-align:center;color:#9ca3af;padding:1rem;">Sin pedidos registrados.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- TABLA DETALLADA -->
+<div class="v-card">
+  <div class="v-card-header">
+    <span class="v-card-title">📋 Historial completo</span>
+    <span style="font-size:0.78rem;color:#6b7280;">{{ pedidos|length }} registros</span>
+  </div>
+  <table class="v-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Cliente</th>
+        <th>Total</th>
+        <th>Estado pedido</th>
+        <th>Estado MP</th>
+        <th>Payment ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pedidos|reverse %}
+      <tr>
+        <td style="font-family:monospace;font-size:0.78rem;color:#6b7280;">#{{ p.id }}</td>
+        <td style="font-weight:600;">{{ p.cliente }}</td>
+        <td style="font-weight:700;">${{ "{:,.0f}".format(p.total) }}</td>
+        <td>
+          {% if p.estado == 'Pagado' %}
+            <span class="v-badge v-badge-success">Pagado</span>
+          {% elif p.estado == 'Pendiente' %}
+            <span class="v-badge v-badge-warning">Pendiente</span>
+          {% elif p.estado == 'Rechazado' %}
+            <span class="v-badge v-badge-danger">Rechazado</span>
+          {% else %}
+            <span class="v-badge v-badge-gray">{{ p.estado }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if p.mp_status == 'approved' %}
+            <span class="v-badge v-badge-success">✅ Aprobado</span>
+          {% elif p.mp_status == 'rejected' %}
+            <span class="v-badge v-badge-danger">❌ Rechazado</span>
+          {% elif p.mp_status == 'pending' %}
+            <span class="v-badge v-badge-warning">⏳ Pendiente</span>
+          {% else %}
+            <span class="v-badge v-badge-gray">—</span>
+          {% endif %}
+        </td>
+        <td style="font-family:monospace;font-size:0.72rem;color:#9ca3af;">
+          {{ p.mp_payment_id or '—' }}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:2rem;">Sin pedidos aún.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Pedidos{% endblock %}
+{% block topbar_titulo %}Gestión de Pedidos{% endblock %}
+
+{% block contenido %}
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-bottom">
+    <h5 class="mb-0">Pedidos</h5>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">ID</th>
+          <th>Cliente</th>
+          <th>Total</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos %}
+        <tr>
+          <td class="ps-3 text-muted">#{{ p.id }}</td>
+          <td>{{ p.cliente }}</td>
+          <td class="fw-medium">${{ "{:,.0f}".format(p.total) }}</td>
+          <td>
+            {% if p.estado == 'Pendiente' %}
+              <span class="badge bg-warning-subtle text-warning">⏳ Pendiente</span>
+            {% elif p.estado == 'Enviado' %}
+              <span class="badge bg-info-subtle text-info">🚚 Enviado</span>
+            {% elif p.estado == 'Entregado' %}
+              <span class="badge bg-success-subtle text-success">✅ Entregado</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary">{{ p.estado }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted py-4">No hay pedidos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

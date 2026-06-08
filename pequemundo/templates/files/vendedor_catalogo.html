@@ -1,0 +1,86 @@
+{% extends "vendedor_base.html" %}
+{% block titulo %}Catálogo{% endblock %}
+{% block topbar_titulo %}Catálogo de Productos{% endblock %}
+
+{% block contenido %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <div>
+    <h2 style="font-size:1.2rem;font-weight:700;margin:0;">Catálogo activo</h2>
+    <p style="font-size:0.8rem;color:#6b7280;margin:0;">{{ productos|length }} producto{{ 's' if productos|length != 1 else '' }} disponible{{ 's' if productos|length != 1 else '' }}</p>
+  </div>
+  <a href="{{ url_for('vendedor_crear_pedido') }}" class="v-btn v-btn-primary">➕ Nuevo pedido</a>
+</div>
+
+<!-- Filtros -->
+<div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+  <button onclick="filtrar('')" class="filtro-btn active" data-cat="">Todos</button>
+  {% set cats = productos | map(attribute='categoria') | unique | list %}
+  {% for cat in cats %}
+  <button onclick="filtrar('{{ cat }}')" class="filtro-btn" data-cat="{{ cat }}">{{ cat }}</button>
+  {% endfor %}
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;" id="catalogoGrid">
+  {% for p in productos %}
+  <div class="v-card producto-item" data-cat="{{ p.categoria }}" style="transition:transform 0.15s;">
+    <div style="padding:1rem 1rem 0.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.6rem;">
+        <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;color:#6b7280;font-weight:600;background:#f3f4f6;padding:2px 8px;border-radius:99px;">{{ p.categoria }}</span>
+        {% if p.stock <= 3 %}
+          <span class="v-badge v-badge-danger" style="font-size:0.65rem;">⚠ Stock bajo</span>
+        {% endif %}
+      </div>
+      <div style="background:#f9fafb;border-radius:8px;height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:0.8rem;font-size:3rem;">
+        🛋️
+      </div>
+      <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.3rem;">{{ p.nombre }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;margin-bottom:0.8rem;line-height:1.4;">{{ p.descripcion[:70] }}{% if p.descripcion|length > 70 %}...{% endif %}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.6rem;border-top:1px solid #f3f4f6;">
+        <span style="font-size:1.05rem;font-weight:800;color:#4f7df3;">${{ "{:,.0f}".format(p.precio) }}</span>
+        <span style="font-size:0.75rem;color:{% if p.stock > 3 %}#10b981{% else %}#ef4444{% endif %};font-weight:600;">
+          {{ p.stock }} en stock
+        </span>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div style="grid-column:1/-1;text-align:center;padding:3rem;color:#9ca3af;">Sin productos activos disponibles.</div>
+  {% endfor %}
+</div>
+
+<style>
+  .filtro-btn {
+    padding: 0.4rem 1rem;
+    border-radius: 99px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: #374151;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .filtro-btn.active, .filtro-btn:hover {
+    background: #4f7df3;
+    color: #fff;
+    border-color: #4f7df3;
+  }
+  .producto-item:hover { transform: translateY(-3px); }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function filtrar(cat) {
+    document.querySelectorAll('.filtro-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === cat);
+    });
+    document.querySelectorAll('.producto-item').forEach(el => {
+      el.style.display = (!cat || el.dataset.cat === cat) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}
