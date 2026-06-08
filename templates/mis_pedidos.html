@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/normalize.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <title>Mis Pedidos - Peque Mundo</title>
+  <style>
+    .pedidos-section {
+      max-width: 80rem;
+      margin: 0 auto;
+      padding: 10rem 2rem 4rem;
+    }
+    .pedidos-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3rem;
+    }
+    .pedidos-header h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      margin: 0;
+    }
+    .pedido-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 1.6rem;
+      padding: 2rem 2.4rem;
+      margin-bottom: 1.4rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      transition: box-shadow 0.2s;
+    }
+    .pedido-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .pedido-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .pedido-id {
+      font-family: monospace;
+      font-size: 1.3rem;
+      color: #9ca3af;
+    }
+    .pedido-total {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #111827;
+    }
+    .pedido-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 14px;
+      border-radius: 99px;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    .badge-pagado   { background: #d1fae5; color: #065f46; }
+    .badge-pendiente{ background: #fef3c7; color: #92400e; }
+    .badge-rechazado{ background: #fee2e2; color: #991b1b; }
+    .badge-otro     { background: #f3f4f6; color: #374151; }
+    .pedido-items {
+      background: #f9fafb;
+      border-radius: 1rem;
+      padding: 1.2rem 1.6rem;
+      font-size: 1.3rem;
+      color: #374151;
+      line-height: 1.8;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 6rem 2rem;
+      color: #9ca3af;
+    }
+    .empty-state .emoji { font-size: 5rem; display: block; margin-bottom: 1.5rem; }
+    .empty-state h2 { font-size: 2rem; color: #374151; margin-bottom: 1rem; }
+    .empty-state p  { font-size: 1.5rem; margin-bottom: 2.5rem; }
+
+    /* ── COMPROBANTE BUTTON ── */
+    .btn-comprobante {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.2rem;
+      border-radius: 0.8rem;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn-comprobante:hover {
+      background: #f9fafb;
+      border-color: #4f7df3;
+      color: #4f7df3;
+    }
+
+    /* ── MODAL COMPROBANTE ── */
+    #comprobante-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      backdrop-filter: blur(4px);
+    }
+    #comprobante-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    #comprobante-modal {
+      background: #fff;
+      border-radius: 2rem;
+      width: 100%;
+      max-width: 52rem;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #comprobante-overlay.open #comprobante-modal {
+      transform: translateY(0) scale(1);
+    }
+
+    /* ── RECEIPT STYLES ── */
+    .receipt {
+      padding: 3.2rem 3.2rem 2.4rem;
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    }
+    .receipt-header {
+      text-align: center;
+      margin-bottom: 2.4rem;
+      padding-bottom: 2rem;
+      border-bottom: 2px dashed #e5e7eb;
+    }
+    .receipt-logo {
+      font-size: 3.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .receipt-brand {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #111827;
+      letter-spacing: -0.02em;
+    }
+    .receipt-subtitle {
+      font-size: 1.2rem;
+      color: #9ca3af;
+      margin-top: 0.3rem;
+    }
+    .receipt-status-banner {
+      margin: 2rem 0;
+      padding: 1.2rem 2rem;
+      border-radius: 1.2rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+    .receipt-status-pagado   { background: #d1fae5; color: #065f46; }
+    .receipt-status-pendiente{ background: #fef3c7; color: #92400e; }
+    .receipt-status-rechazado{ background: #fee2e2; color: #991b1b; }
+
+    .receipt-section {
+      margin-bottom: 2rem;
+    }
+    .receipt-section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1rem;
+    }
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 1.3rem;
+    }
+    .receipt-row:last-child { border-bottom: none; }
+    .receipt-row-label { color: #6b7280; }
+    .receipt-row-value { font-weight: 600; color: #111827; }
+
+    .receipt-items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1.3rem;
+      margin-top: 0.5rem;
+    }
+    .receipt-items-table th {
+      background: #f9fafb;
+      padding: 0.8rem 1rem;
+      text-align: left;
+      font-size: 1.1rem;
+      color: #6b7280;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .receipt-items-table td {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid #f3f4f6;
+      color: #374151;
+    }
+    .receipt-items-table tr:last-child td { border-bottom: none; }
+    .receipt-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.4rem 1.6rem;
+      background: #111827;
+      border-radius: 1.2rem;
+      margin-top: 1.5rem;
+    }
+    .receipt-total-label { color: #9ca3af; font-size: 1.3rem; font-weight: 600; }
+    .receipt-total-value { color: #fff; font-size: 2rem; font-weight: 900; letter-spacing: -0.02em; }
+    .receipt-footer {
+      text-align: center;
+      margin-top: 2.4rem;
+      padding-top: 2rem;
+      border-top: 2px dashed #e5e7eb;
+      color: #9ca3af;
+      font-size: 1.2rem;
+      line-height: 1.8;
+    }
+    .receipt-qr {
+      width: 80px;
+      height: 80px;
+      margin: 1.2rem auto 0;
+      background: #f3f4f6;
+      border-radius: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+    }
+
+    /* Modal actions */
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      padding: 1.6rem 3.2rem 2.4rem;
+      border-top: 1px solid #f3f4f6;
+    }
+    .btn-print {
+      flex: 1;
+      padding: 1.2rem;
+      border-radius: 1rem;
+      border: none;
+      background: #111827;
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      transition: background 0.15s;
+    }
+    .btn-print:hover { background: #1f2937; }
+    .btn-close-modal {
+      padding: 1.2rem 2rem;
+      border-radius: 1rem;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      font-size: 1.4rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      color: #374151;
+      transition: background 0.15s;
+    }
+    .btn-close-modal:hover { background: #f9fafb; }
+
+    /* ── PRINT STYLES ── */
+    @media print {
+      body > *:not(#comprobante-overlay) { display: none !important; }
+      #comprobante-overlay { position: static !important; background: none !important; display: block !important; opacity: 1 !important; pointer-events: none !important; padding: 0 !important; }
+      #comprobante-modal { box-shadow: none !important; max-height: none !important; border-radius: 0 !important; transform: none !important; }
+      .modal-actions { display: none !important; }
+      .receipt { padding: 2rem !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="home-header">
+    <a href="{{ url_for('inicio') }}" class="home-brand">
+      <img src="{{ url_for('static', filename='img/Logo_pequemundo.png') }}" alt="Peque Mundo" class="home-logo">
+    </a>
+    <nav class="home-nav">
+      <a href="{{ url_for('inicio') }}">Inicio</a>
+      <a href="{{ url_for('catalogo') }}">Catálogo</a>
+      <a href="{{ url_for('mis_pedidos') }}" style="color:#4f7df3;">Mis pedidos</a>
+    </nav>
+    <div class="home-actions">
+      {% if session.get('rol') == 'Admin' %}
+        <a href="{{ url_for('dashboard') }}" title="Panel Admin">⚙️</a>
+      {% elif session.get('rol') == 'Vendedor' %}
+        <a href="{{ url_for('vendedor_dashboard') }}" title="Panel Vendedor">🏪</a>
+      {% endif %}
+      <a href="{{ url_for('cerrar_sesion') }}" title="Cerrar sesión">🔓</a>
+    </div>
+  </header>
+
+  <main class="pedidos-section">
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div style="padding:1.2rem 1.6rem;border-radius:1rem;margin-bottom:1.5rem;font-size:1.4rem;
+            background:{% if cat=='danger' %}#fee2e2{% elif cat=='success' %}#dcfce7{% else %}#dbeafe{% endif %};
+            color:{% if cat=='danger' %}#991b1b{% elif cat=='success' %}#166534{% else %}#1e40af{% endif %};">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="pedidos-header">
+      <h1>📦 Mis pedidos</h1>
+      <a href="{{ url_for('catalogo') }}" class="primary-button"
+         style="display:inline-flex;align-items:center;padding:0 2.4rem;height:4.8rem;border-radius:1rem;text-decoration:none;font-size:1.5rem;">
+        🛍️ Seguir comprando
+      </a>
+    </div>
+
+    {% if pedidos %}
+      {% for p in pedidos %}
+      <div class="pedido-card">
+        <div class="pedido-top">
+          <div>
+            <span class="pedido-id">#{{ p.id }}</span>
+            <div style="margin-top:0.4rem;">
+              {% if p.estado == 'Pagado' or p.mp_status == 'approved' %}
+                <span class="pedido-badge badge-pagado">✅ Pagado</span>
+              {% elif p.mp_status == 'rejected' or p.estado == 'Rechazado' %}
+                <span class="pedido-badge badge-rechazado">❌ Rechazado</span>
+              {% elif p.mp_status == 'pending' %}
+                <span class="pedido-badge badge-pendiente">⏳ En proceso</span>
+              {% else %}
+                <span class="pedido-badge badge-pendiente">⏳ Pendiente</span>
+              {% endif %}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:1.2rem;">
+            <div class="pedido-total">${{ "{:,.0f}".format(p.total) }}</div>
+            <button class="btn-comprobante" onclick="abrirComprobante({{ p.id }})">
+              🧾 Comprobante
+            </button>
+          </div>
+        </div>
+
+        {% if p.items_json %}
+          <div class="pedido-items">
+            <strong style="display:block;margin-bottom:0.5rem;font-size:1.2rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Productos</strong>
+            <div id="items-{{ p.id }}">
+              <span style="color:#9ca3af;">Cargando detalle...</span>
+            </div>
+            <script>
+              (function() {
+                try {
+                  var items = {{ p.items_json | tojson }};
+                  if (typeof items === 'string') items = JSON.parse(items);
+                  var html = '';
+                  for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    html += '<div>' + item.nombre + ' × ' + item.cantidad + ' — $' + (item.precio * item.cantidad).toLocaleString('es-CL') + '</div>';
+                  }
+                  document.getElementById('items-{{ p.id }}').innerHTML = html || '<div style="color:#9ca3af;">Sin detalle</div>';
+                } catch(e) {
+                  document.getElementById('items-{{ p.id }}').innerHTML = '<div style="color:#9ca3af;">Detalle no disponible</div>';
+                }
+              })();
+            </script>
+          </div>
+        {% endif %}
+
+        {% if p.mp_payment_id %}
+        <div style="margin-top:1rem;font-size:1.2rem;color:#9ca3af;font-family:monospace;">
+          Payment ID: {{ p.mp_payment_id }}
+        </div>
+        {% endif %}
+      </div>
+
+      {# Datos para el comprobante embebidos en JSON #}
+      <script>
+        pedidosData[{{ p.id }}] = {
+          id: {{ p.id }},
+          cliente: {{ p.cliente | tojson }},
+          total: {{ p.total }},
+          estado: {{ p.estado | tojson }},
+          mp_status: {{ (p.mp_status or '') | tojson }},
+          mp_payment_id: {{ (p.mp_payment_id or '') | tojson }},
+          items_json: {{ p.items_json | tojson if p.items_json else 'null' }}
+        };
+      </script>
+
+      {% endfor %}
+
+    {% else %}
+      <div class="empty-state">
+        <span class="emoji">🛒</span>
+        <h2>Aún no tienes pedidos</h2>
+        <p>Explora nuestro catálogo y realiza tu primera compra.</p>
+        <a href="{{ url_for('catalogo') }}" class="primary-button"
+           style="display:inline-flex;align-items:center;padding:0 3rem;height:5.2rem;border-radius:1rem;text-decoration:none;font-size:1.6rem;">
+          Ver catálogo →
+        </a>
+      </div>
+    {% endif %}
+
+  </main>
+
+  <!-- ── MODAL COMPROBANTE ── -->
+  <div id="comprobante-overlay" onclick="cerrarComprobante(event)">
+    <div id="comprobante-modal">
+      <div class="receipt" id="receipt-content">
+        <!-- Se genera dinámicamente -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-print" onclick="imprimirComprobante()">
+          🖨️ Imprimir / Guardar PDF
+        </button>
+        <button class="btn-close-modal" onclick="cerrarComprobante()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {% include 'carrito_flotante.html' %}
+
+  <script>
+    // Inicializar objeto de datos antes de que los scripts inline lo usen
+    var pedidosData = {};
+  </script>
+
+  <script>
+    function estadoBadgeClass(p) {
+      if (p.estado === 'Pagado' || p.mp_status === 'approved') return 'receipt-status-pagado';
+      if (p.mp_status === 'rejected' || p.estado === 'Rechazado') return 'receipt-status-rechazado';
+      return 'receipt-status-pendiente';
+    }
+
+    function estadoTexto(p) {
+      if (p.estado === 'Pagado' || p.mp_status === 'approved') return '✅ Pago confirmado';
+      if (p.mp_status === 'rejected' || p.estado === 'Rechazado') return '❌ Pago rechazado';
+      if (p.mp_status === 'pending') return '⏳ Pago en proceso';
+      return '⏳ Pendiente';
+    }
+
+    function abrirComprobante(id) {
+      var p = pedidosData[id];
+      if (!p) return;
+
+      var items = [];
+      try {
+        if (p.items_json) {
+          items = typeof p.items_json === 'string' ? JSON.parse(p.items_json) : p.items_json;
+        }
+      } catch(e) {}
+
+      var now = new Date();
+      var fechaStr = now.toLocaleDateString('es-CL', { year:'numeric', month:'long', day:'numeric' });
+      var horaStr  = now.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+
+      var itemsHtml = '';
+      if (items.length > 0) {
+        itemsHtml = '<table class="receipt-items-table"><thead><tr>'
+          + '<th>Producto</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Subtotal</th>'
+          + '</tr></thead><tbody>';
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          var sub = (it.precio * it.cantidad).toLocaleString('es-CL');
+          itemsHtml += '<tr>'
+            + '<td>' + it.nombre + '<br><span style="font-size:1.1rem;color:#9ca3af;">$' + it.precio.toLocaleString('es-CL') + ' c/u</span></td>'
+            + '<td style="text-align:center;font-weight:700;">' + it.cantidad + '</td>'
+            + '<td style="text-align:right;font-weight:700;color:#111827;">$' + sub + '</td>'
+            + '</tr>';
+        }
+        itemsHtml += '</tbody></table>';
+      } else {
+        itemsHtml = '<p style="color:#9ca3af;font-size:1.2rem;">Sin detalle de productos.</p>';
+      }
+
+      var paymentRow = p.mp_payment_id
+        ? '<div class="receipt-row"><span class="receipt-row-label">Payment ID</span><span class="receipt-row-value" style="font-family:monospace;font-size:1.1rem;">' + p.mp_payment_id + '</span></div>'
+        : '';
+
+      document.getElementById('receipt-content').innerHTML = `
+        <div class="receipt-header">
+          <div class="receipt-logo">🛋️</div>
+          <div class="receipt-brand">Peque Mundo</div>
+          <div class="receipt-subtitle">Muebles Infantiles · Comprobante de Compra</div>
+        </div>
+
+        <div class="receipt-status-banner ${estadoBadgeClass(p)}">
+          ${estadoTexto(p)}
+        </div>
+
+        <div class="receipt-section">
+          <div class="receipt-section-title">Información del pedido</div>
+          <div class="receipt-row">
+            <span class="receipt-row-label">N° de pedido</span>
+            <span class="receipt-row-value" style="font-family:monospace;">#${p.id}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-row-label">Cliente</span>
+            <span class="receipt-row-value">${p.cliente}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-row-label">Fecha</span>
+            <span class="receipt-row-value">${fechaStr}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-row-label">Hora</span>
+            <span class="receipt-row-value">${horaStr}</span>
+          </div>
+          ${paymentRow}
+        </div>
+
+        <div class="receipt-section">
+          <div class="receipt-section-title">Detalle de productos</div>
+          ${itemsHtml}
+        </div>
+
+        <div class="receipt-total-row">
+          <span class="receipt-total-label">Total pagado</span>
+          <span class="receipt-total-value">$${p.total.toLocaleString('es-CL')}</span>
+        </div>
+
+        <div class="receipt-footer">
+          <p>Gracias por tu compra en Peque Mundo 🎉</p>
+          <p>Para consultas: contacto@pequemundo.cl</p>
+          <p style="margin-top:0.5rem;font-size:1rem;color:#d1d5db;">
+            Comprobante generado el ${fechaStr} a las ${horaStr}
+          </p>
+          <div class="receipt-qr">🔲</div>
+        </div>
+      `;
+
+      document.getElementById('comprobante-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarComprobante(event) {
+      if (event && event.target !== document.getElementById('comprobante-overlay')) return;
+      document.getElementById('comprobante-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function imprimirComprobante() {
+      window.print();
+    }
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.getElementById('comprobante-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    });
+  </script>
+
+</body>
+</html>

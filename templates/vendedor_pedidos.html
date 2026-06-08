@@ -1,0 +1,73 @@
+{% extends "vendedor_base.html" %}
+{% block titulo %}Mis Pedidos{% endblock %}
+{% block topbar_titulo %}Mis Pedidos{% endblock %}
+
+{% block contenido %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <div>
+    <h2 style="font-size:1.2rem;font-weight:700;margin:0;">Mis pedidos</h2>
+    <p style="font-size:0.8rem;color:#6b7280;margin:0;">{{ pedidos|length }} pedido{{ 's' if pedidos|length != 1 else '' }} registrado{{ 's' if pedidos|length != 1 else '' }}</p>
+  </div>
+  <a href="{{ url_for('vendedor_crear_pedido') }}" class="v-btn v-btn-primary">➕ Nuevo pedido</a>
+</div>
+
+<div class="v-card">
+  <table class="v-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Cliente</th>
+        <th>Email</th>
+        <th>Total</th>
+        <th>Estado pedido</th>
+        <th>Pago MP</th>
+        <th>Preference ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pedidos|reverse %}
+      <tr>
+        <td style="font-family:monospace;font-size:0.78rem;color:#6b7280;">#{{ p.id }}</td>
+        <td style="font-weight:600;">{{ p.cliente }}</td>
+        <td style="color:#6b7280;font-size:0.8rem;">{{ p.cliente_email or '—' }}</td>
+        <td style="font-weight:700;">${{ "{:,.0f}".format(p.total) }}</td>
+        <td>
+          {% if p.estado == 'Pagado' %}
+            <span class="v-badge v-badge-success">✅ Pagado</span>
+          {% elif p.estado == 'Pendiente' %}
+            <span class="v-badge v-badge-warning">⏳ Pendiente</span>
+          {% elif p.estado == 'Rechazado' %}
+            <span class="v-badge v-badge-danger">❌ Rechazado</span>
+          {% else %}
+            <span class="v-badge v-badge-gray">{{ p.estado }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if p.mp_status == 'approved' %}
+            <span class="v-badge v-badge-success">Aprobado</span>
+          {% elif p.mp_status == 'rejected' %}
+            <span class="v-badge v-badge-danger">Rechazado</span>
+          {% elif p.mp_status == 'pending' %}
+            <span class="v-badge v-badge-warning">En proceso</span>
+          {% else %}
+            <span class="v-badge v-badge-gray">Sin pago</span>
+          {% endif %}
+        </td>
+        <td style="font-family:monospace;font-size:0.7rem;color:#9ca3af;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          {{ p.mp_preference_id or '—' }}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:#9ca3af;padding:3rem;">
+          No tienes pedidos aún.<br>
+          <a href="{{ url_for('vendedor_crear_pedido') }}" style="color:#4f7df3;font-weight:600;">Crear tu primer pedido →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
